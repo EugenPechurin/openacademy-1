@@ -60,6 +60,8 @@ class Session(models.Model):
     taken_seats = fields.Float(string="Taken seats", compute='_taken_seats')
     end_date = fields.Date(string="End Date", store=True,
         compute='_get_end_date', inverse='_set_end_date')
+    attendees_count = fields.Integer(
+        string="Attendees count", compute='_get_attendees_count', store=True)
 
     @api.depends('seats', 'attendee_ids')
     def _taken_seats(self):
@@ -86,6 +88,12 @@ class Session(models.Model):
                     'message': "Increase seats or remove excess attendees",
                 },
             }
+
+    @api.depends('attendee_ids')
+    def _get_attendees_count(self):
+        for r in self:
+            r.attendees_count = len(r.attendee_ids)
+
     @api.constrains('instructor_id', 'attendee_ids')
     def _check_instructor_not_in_attendees(self):
         for r in self:
@@ -111,7 +119,8 @@ class Session(models.Model):
             if not (r.start_date and r.end_date):
                 continue
 
-            # Compute the difference between dates, but: Friday - Monday = 4 days,
+            # Compute the difference between dates, but:
+            # Friday - Monday = 4 days,
             # so add one day to get 5 days instead
             start_date = fields.Datetime.from_string(r.start_date)
             end_date = fields.Datetime.from_string(r.end_date)
